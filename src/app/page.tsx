@@ -1,103 +1,200 @@
-import Image from "next/image";
+"use client"
+
+import { motion } from "framer-motion"
+import { useAccount, useConnect, useSignMessage } from "wagmi"
+import axios from "axios"
+import { createPublicClient, http, formatEther } from "viem"
+import { mainnet } from "viem/chains"
+import { useEffect, useState } from "react"
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { address, isConnected } = useAccount()
+  const { connect, connectors } = useConnect()
+  const { signMessageAsync } = useSignMessage()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const [balance, setBalance] = useState<string | null>(null)
+
+  // cliente blockchain
+  const client = createPublicClient({
+    chain: mainnet,
+    transport: http(),
+  })
+
+  // buscar saldo
+  useEffect(() => {
+    if (!address) return
+
+    const fetchBalance = async () => {
+      try {
+        const value = await client.getBalance({
+          address: address as `0x${string}`,
+        })
+
+        setBalance(formatEther(value))
+      } catch (err) {
+        console.error("Erro ao buscar saldo:", err)
+      }
+    }
+
+    fetchBalance()
+  }, [address])
+
+  // login web3
+  const handleLogin = async () => {
+    if (!address) return
+
+    try {
+      const res = await axios.get(
+        `http://127.0.0.1:8000/auth/message?address=${address}`
+      )
+
+      const message = res.data.message
+
+      const signature = await signMessageAsync({ message })
+
+      const verify = await axios.post(
+        "http://127.0.0.1:8000/auth/verify",
+        {
+          message,
+          signature,
+          address,
+        }
+      )
+
+      console.log("JWT:", verify.data.token)
+      alert("Login realizado com sucesso 🚀")
+    } catch (err) {
+      console.error(err)
+      alert("Erro no login")
+    }
+  }
+
+  return (
+    <main className="bg-black text-white min-h-screen font-sans overflow-hidden">
+
+      {/* HERO */}
+      <section className="relative flex flex-col items-center justify-center text-center px-6 py-40 overflow-hidden">
+
+        {/* GRID */}
+        <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:40px_40px]" />
+
+        {/* GLOW */}
+        <div className="absolute w-[900px] h-[900px] bg-purple-600 opacity-30 blur-[200px] rounded-full top-[-200px]" />
+        <div className="absolute w-[700px] h-[700px] bg-blue-500 opacity-30 blur-[200px] rounded-full bottom-[-200px]" />
+
+        {/* CONTENT */}
+        <div className="relative z-10 flex flex-col items-center">
+
+          {/* LOGO */}
+          <motion.img
+            src="/logo.png"
+            alt="CodeXyn"
+            className="w-40 mb-8 drop-shadow-[0_0_30px_rgba(139,92,246,0.7)]"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+          />
+
+          {/* TITLE */}
+          <motion.h1
+            className="text-7xl font-extrabold mb-6"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <span>Code</span>
+            <span className="bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
+              Xyn
+            </span>
+          </motion.h1>
+
+          {/* SUBTITLE */}
+          <p className="text-2xl text-gray-300 mb-6">
+            Web3, sem complexidade.
+          </p>
+
+          {/* BOTÕES */}
+          <div className="flex gap-4">
+
+            {!isConnected && (
+              <button
+                onClick={async () => {
+                  try {
+                    await connectors[0].connect()
+                  } catch (err) {
+                    console.error(err)
+                  }
+                }}
+                className="bg-purple-600 px-8 py-4 rounded-xl shadow-[0_0_30px_rgba(139,92,246,0.6)] hover:scale-105 transition"
+              >
+                Conectar Wallet
+              </button>
+            )}
+
+            {isConnected && (
+              <button
+                onClick={handleLogin}
+                className="bg-blue-600 px-8 py-4 rounded-xl hover:scale-105 transition"
+              >
+                Login Web3
+              </button>
+            )}
+
+          </div>
+
+          {/* INFO WALLET */}
+          {isConnected && (
+            <div className="mt-6 text-center">
+              <p className="text-gray-400 text-sm">
+                Conectado: {address}
+              </p>
+
+              {balance && (
+                <p className="text-green-400 mt-2 text-lg">
+                  💰 {parseFloat(balance).toFixed(4)} ETH
+                </p>
+              )}
+            </div>
+          )}
+
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      {/* FEATURES */}
+      <section className="px-6 py-24 max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+
+        <div className="bg-white/5 p-8 rounded-2xl border border-white/10">
+          <h3 className="text-xl text-purple-400 mb-2">
+            🔐 Non-custodial
+          </h3>
+          <p className="text-gray-400">
+            Controle total dos seus ativos.
+          </p>
+        </div>
+
+        <div className="bg-white/5 p-8 rounded-2xl border border-white/10">
+          <h3 className="text-xl text-purple-400 mb-2">
+            ⚡ Transações rápidas
+          </h3>
+          <p className="text-gray-400">
+            Simples como enviar um Pix.
+          </p>
+        </div>
+
+        <div className="bg-white/5 p-8 rounded-2xl border border-white/10">
+          <h3 className="text-xl text-purple-400 mb-2">
+            🧠 Inteligência com IA
+          </h3>
+          <p className="text-gray-400">
+            Insights automáticos da sua wallet.
+          </p>
+        </div>
+
+      </section>
+
+      {/* FOOTER */}
+      <footer className="text-center text-gray-500 py-10">
+        CodeXyn © {new Date().getFullYear()} — Code Synergy
       </footer>
-    </div>
-  );
+
+    </main>
+  )
 }

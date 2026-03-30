@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CodeXyn
 
-## Getting Started
+Frontend Next.js + backend FastAPI para uma plataforma que centraliza wallets e exchanges com autenticação por conta, vínculo de carteira e integração com Binance Exchange por API read-only.
 
-First, run the development server:
+## Estrutura
+
+- `src/`: frontend Next.js
+- `backend/`: API FastAPI
+- `deploy/`: arquivos de proxy reverso para produção
+- `docker-compose.yml`: stack pronta para VPS com Caddy
+
+## Desenvolvimento local
+
+Frontend:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Backend:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload --port 8000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Produção em VPS
 
-## Learn More
+O repositório já está preparado para rodar inteiro na mesma máquina, sem separar frontend e backend em projetos diferentes.
 
-To learn more about Next.js, take a look at the following resources:
+Stack recomendada:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `frontend`: container Next.js
+- `backend`: container FastAPI
+- `caddy`: TLS automático + reverse proxy
+- `supabase`: banco e auth fora da VPS
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Arquivos de produção
 
-## Deploy on Vercel
+- [docker-compose.yml](/Users/jeandrpires/Projetos/codexyn-landing/docker-compose.yml)
+- [Dockerfile.frontend](/Users/jeandrpires/Projetos/codexyn-landing/Dockerfile.frontend)
+- [backend/Dockerfile](/Users/jeandrpires/Projetos/codexyn-landing/backend/Dockerfile)
+- [deploy/Caddyfile](/Users/jeandrpires/Projetos/codexyn-landing/deploy/Caddyfile)
+- [.env.production.example](/Users/jeandrpires/Projetos/codexyn-landing/.env.production.example)
+- [backend/.env.production.example](/Users/jeandrpires/Projetos/codexyn-landing/backend/.env.production.example)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Variáveis
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Na raiz, crie `.env.production` com:
+
+```env
+APP_DOMAIN=app.seudominio.com
+API_DOMAIN=api.seudominio.com
+NEXT_PUBLIC_API_URL=https://api.seudominio.com
+NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key
+```
+
+No backend, crie `backend/.env` com base em `backend/.env.production.example`.
+
+### Deploy
+
+```bash
+docker compose --env-file .env.production up -d --build
+```
+
+### DNS
+
+Crie dois apontamentos para o IP da sua VPS:
+
+- `app.seudominio.com`
+- `api.seudominio.com`
+
+### Observações
+
+- O frontend usa `Next.js standalone` para ficar mais leve em container.
+- O backend continua usando Supabase externo.
+- As credenciais da Binance ficam criptografadas no Postgres com `pgcrypto`.
+- Rode novamente o SQL de [backend/supabase/schema.sql](/Users/jeandrpires/Projetos/codexyn-landing/backend/supabase/schema.sql) se ainda não adicionou as colunas novas da Binance.

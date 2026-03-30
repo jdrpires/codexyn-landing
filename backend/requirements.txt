@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+eth-account
+PyJWT
+openai
+python-dotenv
+httpx
+email-validator
+psycopg[binary]
+SQLAlchemy

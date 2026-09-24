@@ -1,15 +1,51 @@
 # CodeXyn
 
-Frontend Next.js + backend FastAPI para uma plataforma que centraliza wallets e exchanges com autenticação por conta, vínculo de carteira e integração com Binance Exchange por API read-only.
+> Full-stack platform for consolidating digital-asset wallets and exchange information through read-only integrations.
 
-## Estrutura
+**Next.js · FastAPI · Supabase · PostgreSQL · Docker · Caddy**
 
-- `src/`: frontend Next.js
-- `backend/`: API FastAPI
-- `deploy/`: arquivos de proxy reverso para produção
-- `docker-compose.yml`: stack pronta para VPS com Caddy
+| | |
+|---|---|
+| **Type** | Full-stack financial data platform |
+| **Domain** | Digital assets / Portfolio aggregation |
+| **Focus** | Account identity, wallet linking and read-only exchange integration |
+| **Status** | Public technical project |
 
-## Desenvolvimento local
+## Overview
+
+CodeXyn explores a full-stack architecture for consolidating wallet and exchange information behind an authenticated application.
+
+The repository combines a Next.js frontend, FastAPI backend and external managed services while keeping exchange credentials isolated from the browser.
+
+## Architecture
+
+```text
+       Browser
+          │
+          ▼
+       Next.js
+          │
+          ▼
+       FastAPI
+      ┌───┴────┐
+      │        │
+  Supabase   Exchange API
+ Auth / DB   read-only
+      │        │
+      └───┬────┘
+          ▼
+   Portfolio Data
+```
+
+## Repository structure
+
+- `src/` — Next.js frontend.
+- `backend/` — FastAPI API.
+- `backend/supabase/` — database/schema assets.
+- `deploy/` — reverse-proxy configuration.
+- `docker-compose.yml` — container orchestration for VPS deployment.
+
+## Local development
 
 Frontend:
 
@@ -29,56 +65,46 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-## Produção em VPS
+## Deployment model
 
-O repositório já está preparado para rodar inteiro na mesma máquina, sem separar frontend e backend em projetos diferentes.
-
-Stack recomendada:
-
-- `frontend`: container Next.js
-- `backend`: container FastAPI
-- `caddy`: TLS automático + reverse proxy
-- `supabase`: banco e auth fora da VPS
-
-### Arquivos de produção
-
-- [docker-compose.yml](/Users/jeandrpires/Projetos/codexyn-landing/docker-compose.yml)
-- [Dockerfile.frontend](/Users/jeandrpires/Projetos/codexyn-landing/Dockerfile.frontend)
-- [backend/Dockerfile](/Users/jeandrpires/Projetos/codexyn-landing/backend/Dockerfile)
-- [deploy/Caddyfile](/Users/jeandrpires/Projetos/codexyn-landing/deploy/Caddyfile)
-- [.env.production.example](/Users/jeandrpires/Projetos/codexyn-landing/.env.production.example)
-- [backend/.env.production.example](/Users/jeandrpires/Projetos/codexyn-landing/backend/.env.production.example)
-
-### Variáveis
-
-Na raiz, crie `.env.production` com:
-
-```env
-APP_DOMAIN=app.seudominio.com
-API_DOMAIN=api.seudominio.com
-NEXT_PUBLIC_API_URL=https://api.seudominio.com
-NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key
+```text
+Internet
+   │
+   ▼
+ Caddy / TLS
+ ┌─────┴─────┐
+ │           │
+Next.js   FastAPI
+             │
+        Supabase / APIs
 ```
 
-No backend, crie `backend/.env` com base em `backend/.env.production.example`.
+The repository includes:
 
-### Deploy
+- [docker-compose.yml](docker-compose.yml)
+- [Dockerfile.frontend](Dockerfile.frontend)
+- [backend/Dockerfile](backend/Dockerfile)
+- [deploy/Caddyfile](deploy/Caddyfile)
+- [.env.production.example](.env.production.example)
+- [backend/.env.production.example](backend/.env.production.example)
+- [backend/supabase/schema.sql](backend/supabase/schema.sql)
 
-```bash
-docker compose --env-file .env.production up -d --build
-```
+## Security model
 
-### DNS
+Exchange access is intended to be **read-only**. Credentials must remain server-side and should use the minimum provider permissions required.
 
-Crie dois apontamentos para o IP da sua VPS:
+Production deployments should also apply:
 
-- `app.seudominio.com`
-- `api.seudominio.com`
+- secret management outside source control;
+- credential rotation;
+- strict CORS and trusted-host configuration;
+- encryption for stored provider credentials;
+- network and application-level observability.
 
-### Observações
+## Why this project is public
 
-- O frontend usa `Next.js standalone` para ficar mais leve em container.
-- O backend continua usando Supabase externo.
-- As credenciais da Binance ficam criptografadas no Postgres com `pgcrypto`.
-- Rode novamente o SQL de [backend/supabase/schema.sql](/Users/jeandrpires/Projetos/codexyn-landing/backend/supabase/schema.sql) se ainda não adicionou as colunas novas da Binance.
+CodeXyn demonstrates full-stack architecture, deployment composition and safe integration boundaries for financial-data systems.
+
+---
+
+**Jean Pires** · [GitHub](https://github.com/jdrpires) · [Portfolio](https://github.com/jdrpires/jdrpires)
